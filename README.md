@@ -31,18 +31,24 @@ The route line was confirmed in the interactive TUI on 19.1.1 with the installed
 
 Hyper lists two ids for the same DeepSeek Flash line. Both report 1M context, vision and the low/high/max effort levels, but they are priced and served differently: input/output per million tokens $0.33/$1.31 vs $0.20/$0.60, cache hit $0.03 vs $0.01, max output 262,144 vs 384,000. The economy id is the cheaper, slower one.
 
-Measured on 2026-11-24, streaming, `reasoning_effort: "low"`, five alternating runs per model per workload. Each workload's first run was uncached (0 cached prompt tokens); the later runs on the same prompt mostly hit the prompt cache, so the prefill times below are warm-cache:
+Measured on 2026-11-24, streaming with every delta timestamped, `reasoning_effort: "low"`, four alternating runs per model per workload. Min–max:
+
+**Effective tok/s** is `(completion_tokens − reasoning_tokens) / (last visible content − first visible content)`: provider-reported answer tokens over the streamed answer window only. Prefill and all thinking time drop out, so it measures how fast the answer streams, not how long the task takes. Keep it apart from **first token** (request → first delta of any kind), **TTFA** (request → first visible content) and **wall** (request → last visible content).
 
 | | `deepseek-v4.1-flash-1017` | `-economy` |
 |---|---|---|
-| Prefill, 7,743-token prompt (time to first token) | 0.56 / 0.62 / 0.68 s | 1.60 / 1.72 / 4.60 s |
-| Short prompt, ~5.3k-token answer (time to first token) | 0.63 / 0.85 / 1.22 s | 3.00 / 3.60 / 15.89 s |
-| Short prompt, ~5.3k-token answer (wall time) | 3.6 / 3.8 / 4.2 s | 15.5 / 16.2 / 28.5 s |
-| Reported completion rate | 1.76k–2.04k tok/s | 0.44k–0.84k tok/s |
+| Effective tok/s, 62-token prompt, 2.6k-token answer | 1,700–1,706 | 369–439 |
+| TTFA, same task | 0.77–1.23 s | 2.25–4.42 s |
+| Wall time, same task | 2.33–2.79 s | 9.36–10.40 s |
+| First token, 11,948-token prompt | 0.55–0.73 s | 1.00–1.45 s |
+| TTFA, 11,948-token prompt | 1.59–6.71 s | 4.17–9.68 s |
+| Reasoning rate, 11,948-token prompt | 580–1,154 tok/s | 209–242 tok/s |
 
-Min / median / max. The completion rate is `completion_tokens / (wall time - time to first content)` and counts reasoning tokens, including any generated before the first visible content, so it is not a clean decode rate and the 3–4× gap it implies is not established. What the runs do show is wall time: economy needed roughly 3–5× as long to finish the same answer, and ~2.8× as long to first token on the warm 7.7k-token prefill. Its variance is also much wider — one run sat 15.9 s before the first token and spent 5,573 reasoning tokens where the regular id used 191–1,053.
+Hyper returned no `prompt_tokens_details` in these runs, so their cache state is unknown; runs 2–4 of each workload repeated the same prompt and may have been warm. An earlier five-run set, where each workload's first run was uncached and later runs mostly hit, kept the same ordering on warm prefill: 0.62 s vs 1.72 s median to first token on a 7,743-token prompt, and 3.8 s vs 16.2 s median wall time for a ~5.3k-token answer.
 
-What the tier changes on the server is not visible from outside: both answer with `server: Google Frontend` and the same 10,000/hour and 100,000/day rate-limit headers. The ids are not interchangeable for latency-sensitive work; economy is worth it only when output length is small and the wait is acceptable.
+The tiers differ in sampling too: on identical prompts economy emitted 171 reasoning tokens where regular used 900, and 735–1,810 against 992–3,477 on the long prompt. Server-side routing is not visible from outside — both answer with `server: Google Frontend` and the same 10,000/hour and 100,000/day limits.
+
+Where that lands: Artificial Analysis reports roughly 30–150 output tok/s for typical frontier APIs and 300–600 for fast providers. On that scale ~1,700 tok/s is dedicated-inference class and ~400 tok/s is fast but ordinary. These are Hyper-reported token counts from one prompt family on one day, not an AA measurement. Economy is worth it only when the answer is short and the wait is acceptable; use the regular id for latency-sensitive work.
 
 ## Install
 
