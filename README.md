@@ -27,6 +27,23 @@ Identical content hit the prompt cache whichever affinity it carried, and the sa
 
 The route line was confirmed in the interactive TUI on 19.1.1 with the installed tag: a `prism-flash` completion that Prism routed to GLM 5.3 Flash drew `Prism → GLM 5.3 Flash` under the prompt, and the same model in a session started with `--no-extensions` drew no such line.
 
+## Model tier speed: `deepseek-v4.1-flash-1017` vs `-economy`
+
+Hyper lists two ids for the same DeepSeek Flash line. Both report 1M context, vision and the low/high/max effort levels, but they are priced and served differently: input/output per million tokens $0.33/$1.31 vs $0.20/$0.60, cache hit $0.03 vs $0.01, max output 262,144 vs 384,000. The economy id is the cheaper, slower one.
+
+Measured on 2026-11-24, streaming, `reasoning_effort: "low"`, five alternating runs per model per workload, no cache hits:
+
+| | `deepseek-v4.1-flash-1017` | `-economy` |
+|---|---|---|
+| Prefill, 7,743-token prompt (time to first token) | 0.56 / 0.62 / 0.68 s | 1.60 / 1.72 / 4.60 s |
+| Short prompt, ~5.3k-token answer (time to first token) | 0.63 / 0.85 / 1.22 s | 3.00 / 3.60 / 15.89 s |
+| Short prompt, ~5.3k-token answer (wall time) | 3.6 / 3.8 / 4.2 s | 15.5 / 16.2 / 28.5 s |
+| Decode rate | 1.76k–2.04k tok/s | 0.44k–0.84k tok/s |
+
+Min / median / max. Decode rate is `completion_tokens / (wall time - time to first content)`, so it counts reasoning tokens as output. Roughly: economy is 3–4× slower at sustained decode and ~2.8× slower to first token on a 7.7k-token prefill. Its variance is also much wider — one run sat 15.9 s before the first token and spent 5,573 reasoning tokens where the regular id used 191–1,053.
+
+What the tier changes on the server is not visible from outside: both answer with `server: Google Frontend` and the same 10,000/hour and 100,000/day rate-limit headers. The ids are not interchangeable for latency-sensitive work; economy is worth it only when output length is small and the wait is acceptable.
+
 ## Install
 
 ```sh
