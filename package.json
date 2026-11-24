@@ -1,0 +1,30 @@
+{
+	"name": "@ericjuta/omp-charm",
+	"version": "0.1.0",
+	"description": "Charm Hyper overlay for Oh My Pi: session affinity, compressed requests and the Prism route",
+	"license": "MIT",
+	"type": "module",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/ericjuta/omp-charm.git"
+	},
+	"files": ["index.ts", "src", "README.md", "LICENSE"],
+	"engines": {
+		"bun": ">=1.3.0",
+		"omp": ">=19.1.1"
+	},
+	"omp": {
+		"extensions": ["./index.ts"]
+	},
+	"scripts": {
+		"check": "bun run typecheck && bun test",
+		"typecheck": "tsc --noEmit",
+		"test": "bun test"
+	},
+	"devDependencies": {
+		"@oh-my-pi/pi-ai": "19.1.1",
+		"@oh-my-pi/pi-coding-agent": "19.1.1",
+		"@types/bun": "^1.3.14",
+		"typescript": "^7.0.2"
+	}
+}
