@@ -25,6 +25,8 @@ A wider probe over four models, seven sequential requests each on one fresh prom
 
 Identical content hit the prompt cache whichever affinity it carried, and the same affinity did not guarantee a hit. Response headers expose `x-prism-model-id` but no upstream provider, so pinning cannot be verified from outside either. The header stays because Charm's own provider sends it and it costs nothing; it is not what buys the cache hit.
 
+The route line was confirmed in the interactive TUI on 19.1.1 with the installed tag: a `prism-flash` completion that Prism routed to GLM 5.3 Flash drew `Prism → GLM 5.3 Flash` under the prompt, and the same model in a session started with `--no-extensions` drew no such line.
+
 ## Install
 
 ```sh
