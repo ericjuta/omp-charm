@@ -6,13 +6,24 @@ omp 19.1.1 and later already ship Hyper as the built-in `charm-hyper` provider: 
 
 | Change | What it does |
 |---|---|
-| Session affinity | Sends `x-session-affinity` and `x-client-request-id` with the session id, as Charm's own provider does. Keeps one session on one upstream provider; measured cache hits below do not depend on it. |
+| Session affinity | Sends `x-client-request-id` and `x-session-affinity` with the session id. That pair is Charm's own `openai-nosession` format, and `pi-hyper-provider` sets it with `sendSessionAffinityHeaders: true` and the note that Hyper keys provider pinning and upstream prompt caches on it. It has no measured effect here — see below. |
 | Compressed requests | Sends JSON request bodies as brotli, falling back to gzip and then plain if Hyper answers 400 or 415. |
 | Prism route | Shows `Prism → <model>` in the status line when a Prism model routes the request. |
 
 Measured on omp 19.1.1 through the installed tag, one `prism-flash` request each: a 938,754-byte request body (system prompt and tool schemas) went out as 183,053 bytes of brotli q4 — 5.1× smaller. A 37,957-byte 13k-token JSON body went to 2,414 bytes (15.7×); the ratio follows how repetitive the body is.
 
-Cache hits did not follow the affinity header. Hyper's prompt cache is keyed on prompt content: a fresh 16,785-token prompt reported 0 cached tokens, and every identical repeat reported 16,384 (97.6%) cached — with the same session id, with no affinity headers at all, and with a different session id. The same held on `glm-5.3` (6,656 of 6,798 tokens cached on every repeat). The header stays because Charm's own provider sends it for provider pinning; it is not what buys the cache hit.
+Cache hits did not follow the affinity header. Hyper's prompt cache is keyed on prompt content: a fresh 16,785-token prompt reported 0 cached tokens, and every identical repeat reported 16,384 (97.6%) cached — with the same session id, with no affinity headers at all, and with a different session id. The same held on `glm-5.3` (6,656 of 6,798 tokens cached on every repeat).
+
+A wider probe over four models, seven sequential requests each on one fresh prompt — affinity A, then B, C, D, no affinity, and A again — matched that:
+
+| Model | Cached share on every repeat | Counter-example |
+|---|---|---|
+| `prism-flash` | 9,216 / 10,008 (92.1%) | none |
+| `glm-5.3` | 7,680 / 7,919 (97.0%) | none |
+| `deepseek-v4.1-flash-1017` | 8,064 / 8,065 (100%) | none |
+| `gpt-oss-120b` | 7,424 / 7,506 (98.9%) when it hit | affinity A missed on its warm repeat, then hit on the final A repeat |
+
+Identical content is served from the prompt cache whichever affinity it carries, and the same affinity does not guarantee a hit. Response headers expose `x-prism-model-id` but no upstream provider, so pinning cannot be verified from outside either. The header stays because Charm's own provider sends it and it costs nothing; it is not what buys the cache hit.
 
 ## Install
 
