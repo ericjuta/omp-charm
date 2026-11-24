@@ -12,7 +12,7 @@ omp 19.1.1 and later already ship Hyper as the built-in `charm-hyper` provider: 
 
 Measured on omp 19.1.1 through the installed tag, one `prism-flash` request each: a 938,754-byte request body (system prompt and tool schemas) went out as 183,053 bytes of brotli q4 — 5.1× smaller. A 37,957-byte 13k-token JSON body went to 2,414 bytes (15.7×); the ratio follows how repetitive the body is.
 
-Cache hits did not follow the affinity header. Hyper's prompt cache is keyed on prompt content: a fresh 16,785-token prompt reported 0 cached tokens, and every identical repeat reported 16,384 (97.6%) cached — with the same session id, with no affinity headers at all, and with a different session id. The same held on `glm-5.3` (6,656 of 6,798 tokens cached on every repeat).
+Cache hits did not follow the affinity header in these runs: a fresh 16,785-token prompt reported 0 cached tokens, and every identical repeat reported 16,384 (97.6%) cached — with the same session id, with no affinity headers at all, and with a different session id. The same held on `glm-5.3` (6,656 of 6,798 tokens cached on every repeat). That is consistent with content-keyed caching, but hitting across affinities does not prove the mechanism; what it does refute is the source comment's claim that the affinity header is what buys the hit here.
 
 A wider probe over four models, seven sequential requests each on one fresh prompt — affinity A, then B, C, D, no affinity, and A again — matched that:
 
@@ -23,7 +23,7 @@ A wider probe over four models, seven sequential requests each on one fresh prom
 | `deepseek-v4.1-flash-1017` | 8,064 / 8,065 (100%) | none |
 | `gpt-oss-120b` | 7,424 / 7,506 (98.9%) when it hit | affinity A missed on its warm repeat, then hit on the final A repeat |
 
-Identical content is served from the prompt cache whichever affinity it carries, and the same affinity does not guarantee a hit. Response headers expose `x-prism-model-id` but no upstream provider, so pinning cannot be verified from outside either. The header stays because Charm's own provider sends it and it costs nothing; it is not what buys the cache hit.
+Identical content hit the prompt cache whichever affinity it carried, and the same affinity did not guarantee a hit. Response headers expose `x-prism-model-id` but no upstream provider, so pinning cannot be verified from outside either. The header stays because Charm's own provider sends it and it costs nothing; it is not what buys the cache hit.
 
 ## Install
 
