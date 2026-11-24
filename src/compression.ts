@@ -1,4 +1,5 @@
-// Adapted from charmbracelet/pi-hyper-provider (MIT), src/compression.ts.
+// Adapted from charmbracelet/pi-hyper-provider, src/compression.ts.
+// MIT License, Copyright (c) Charmbracelet, Inc.
 import { promisify } from "node:util";
 import { brotliCompress, constants, gzip } from "node:zlib";
 

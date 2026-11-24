@@ -14,11 +14,11 @@ Measured on one `prism-flash` request from omp 19.1.1: the request body went fro
 
 ## Install
 
-From a checkout:
-
 ```sh
-omp plugin link /path/to/omp-charm
+omp plugin install 'git+https://github.com/ericjuta/omp-charm.git#v0.1.0'
 ```
+
+Or from a checkout: `omp plugin link /path/to/omp-charm`.
 
 Then give omp a Hyper API key: run `/login` and pick Charm Hyper, or set `CHARM_HYPER_API_KEY`. Pick a model with `--model charm-hyper/<id>`; `omp models ls charm-hyper` lists them.
 
@@ -31,4 +31,4 @@ bun run check
 
 ## Licence
 
-MIT. `src/compression.ts` is adapted from charmbracelet/pi-hyper-provider (MIT).
+MIT. `src/compression.ts` is adapted from charmbracelet/pi-hyper-provider (MIT, Copyright (c) Charmbracelet, Inc.).
